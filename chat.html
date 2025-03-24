@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="module" src="https://unpkg.com/emoji-picker-element"></script>
+
+    <style>
+        #video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        #chat-wrapper {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            margin: 50px auto;
+        }
+        #chat-container {
+            width: 60%;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+        }
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        #msgInput {
+            width: 60%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: lightblue;
+            cursor: pointer;
+        }
+        button:hover {
+            background: deepskyblue;
+        }
+        #online-users {
+            width: 30%;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+        }
+        #user-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            width: 200px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .emoji {
+            font-size: 20px;
+            cursor: pointer;
+            margin: 5px;
+            display: inline-block;
+        }
+        #messages img {
+            max-width: 200px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #messages img:hover {
+            transform: scale(1.05);
+        }
+        #messages video, #messages audio {
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
+        }
+        
+    </style>
+</head>
+<body>
+    <video autoplay muted loop id="video-bg">
+        <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
+        Trình duyệt của bạn không hỗ trợ video.
+    </video>
+    
+    <h2>Chào mừng <span id="username"></span> đến với DHT Chat Room!</h2>
+    <a href="/logout" style="color: white;">Đăng xuất</a>
+
+    <div id="chat-wrapper">
+        <!-- Phần khung chat -->
+        <div id="chat-container">
+            <div id="messages"></div>
+            <input id="msgInput" type="text" placeholder="Nhập tin nhắn...">
+            <button onclick="sendMessage()">Gửi</button>
+            <button id="emojiButton">😊</button>
+            <emoji-picker id="emojiPicker"></emoji-picker>
+            <br><br>
+            <input type="file" id="fileInput">
+            <button onclick="uploadFile()">📂 Gửi file</button>
+
+        </div>
+
+        <!-- Phần hiển thị người dùng online -->
+        <div id="online-users">
+            <h3>🟢 Người dùng online</h3>
+            <ul id="user-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        var socket = io.connect(window.location.origin);
+
+        // Tải lịch sử tin nhắn khi trang được load
+        window.onload = function() {
+            fetch("/history")
+            .then(response => response.json())
+            .then(messages => {
+                let chatBox = document.getElementById("messages");
+                messages.forEach(msg => {
+                    let msgElement = document.createElement("p");
+                    msgElement.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]} <span style="font-size: 10px; color: gray;">(${msg[2]})</span>`;
+                    chatBox.appendChild(msgElement);
+                });
+            })
+            .catch(error => console.error("Lỗi tải lịch sử chat:", error));
+        };
+
+        // Nhận tin nhắn mới qua socket
+        socket.on("message", function(data) {
+            let chatBox = document.getElementById("messages");
+            let msgElement = document.createElement("p");
+            msgElement.innerHTML = data;
+            chatBox.appendChild(msgElement);
+        });
+
+        // Cập nhật danh sách người dùng online
+        socket.on("update_users", function(users) {
+            let userList = document.getElementById("user-list");
+            userList.innerHTML = ""; // Xóa danh sách cũ
+            users.forEach(user => {
+                let userItem = document.createElement("li");
+                userItem.textContent = user;
+                userList.appendChild(userItem);
+            });
+        });
+
+        function sendMessage() {
+            var msg = document.getElementById("msgInput").value;
+            if (msg.trim() !== "") {
+                socket.send(msg);
+                document.getElementById("msgInput").value = "";
+            }
+        }
+
+        function uploadFile() {
+            var fileInput = document.getElementById("fileInput");
+            var file = fileInput.files[0];
+            if (!file) {
+                alert("Vui lòng chọn file!");
+                return;
+            }
+        
+            var formData = new FormData();
+            formData.append("file", file);
+        
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())  
+            .then(data => {
+                if (data.status === "success") {
+                    console.log(`File ${file.name} đã được tải lên thành công.`);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error("Lỗi upload file:", error));
+        }
+        
+        // Hiển thị ảnh lớn khi click vào
+        function openImage(imgElement) {
+            var modal = document.createElement("div");
+            modal.style.position = "fixed";
+            modal.style.top = "0";
+            modal.style.left = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.background = "rgba(0, 0, 0, 0.8)";
+            modal.style.display = "flex";
+            modal.style.justifyContent = "center";
+            modal.style.alignItems = "center";
+            modal.style.zIndex = "1000";
+        
+            var img = document.createElement("img");
+            img.src = imgElement.src;
+            img.style.maxWidth = "90%";
+            img.style.maxHeight = "90%";
+            img.style.border = "5px solid white";
+            img.style.borderRadius = "10px";
+            img.style.boxShadow = "0px 0px 20px rgba(255, 255, 255, 0.5)";
+        
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+        
+            // Đóng khi click ra ngoài ảnh
+            modal.onclick = function() {
+                document.body.removeChild(modal);
+            };
+        }
+        
+        
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const picker = document.getElementById("emojiPicker");
+            const input = document.getElementById("msgInput");
+            const emojiButton = document.getElementById("emojiButton");
+
+            // Ẩn emoji picker khi tải trang
+            picker.style.display = "none"; 
+            
+            function toggleEmojiPicker() {
+                picker.style.display = picker.style.display === "none" || picker.style.display === "" ? "block" : "none";
+            }
+            
+            emojiButton.addEventListener("click", toggleEmojiPicker);
+
+            picker.addEventListener("emoji-click", event => {
+                input.value += event.detail.unicode;
+                picker.style.display = "none";
+            });
+        });
+    </script>
+</body>
+</html>
