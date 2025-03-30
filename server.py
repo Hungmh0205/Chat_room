@@ -52,9 +52,13 @@ users_online = set()
 # Trang chủ
 @app.route("/")
 def home():
+    return render_template("home.html")
+
+@app.route("/chat")
+def chat():
     if "username" not in session:
-        return redirect("/login")
-    return render_template("chat.html", username=session["username"])
+        return redirect("/login")  # Nếu chưa đăng nhập thì quay về trang đăng nhập
+    return render_template("chat.html")
 
 # Đăng ký
 @app.route("/register", methods=["GET", "POST"])
@@ -75,7 +79,6 @@ def register():
 
 # Đăng nhập
 @app.route("/login", methods=["GET", "POST"])
-
 def login():
     if request.method == "POST":
         username = request.form["username"]
@@ -87,7 +90,8 @@ def login():
         conn.close()
         if user and bcrypt.check_password_hash(user[0], password):
             session["username"] = username
-            return redirect("/")
+            print(f"🔥 Session khi login: {session}")  # In ra để debug
+            return redirect("/chat")
         else:
             return "Sai tài khoản hoặc mật khẩu!"
     return render_template("login.html")
@@ -100,7 +104,7 @@ def logout():
         users_online.remove(username)
         emit("update_users", list(users_online), broadcast=True)
     session.pop("username", None)
-    return redirect("/login")
+    return redirect("/")
 
 #tải file lên
 @app.route("/upload", methods=["POST"])
