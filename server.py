@@ -46,6 +46,7 @@ def init_db():
 
 init_db()
 
+
 # Danh sách người dùng online
 users_online = set()
 
@@ -105,6 +106,25 @@ def logout():
         emit("update_users", list(users_online), broadcast=True)
     session.pop("username", None)
     return redirect("/")
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html", first_name=session["username"])  # Chỉnh lại biến
+
+
+@app.route("/meeting")
+def meeting():
+    return render_template("meeting.html", username=session["username"])
+
+
+@app.route("/join", methods=["GET", "POST"])
+def join():
+    if request.method == "POST":
+        room_id = request.form.get("roomID")
+        return redirect(f"/meeting?roomID={room_id}")
+
+    return render_template("join.html")
+
 
 #tải file lên
 @app.route("/upload", methods=["POST"])
@@ -170,7 +190,7 @@ def handle_message(msg):
     conn.commit()
     conn.close()
     
-    send(f"{username}: {msg}", broadcast=True)
+    send(f"{username}: {msg}", broadcast=True)   
 
 
 # Xử lý người dùng online
