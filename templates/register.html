@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng ký</title>
+    <title>Sign up</title>
     <style>
         body {
             margin: 0;
@@ -32,24 +32,43 @@
         }
         input {
             width: 100%;
-            padding: 10px;
+            max-width: 300px; /* Giới hạn chiều rộng tối đa */
+            padding: 12px; /* Tăng padding để ô nhập liệu cao hơn */
             margin: 10px 0;
             border: none;
             border-radius: 5px;
             background: rgba(255, 255, 255, 0.2);
             color: white;
+            transition: 0.3s ease-in-out;
+            box-sizing: border-box; /* Đảm bảo padding không làm chiều rộng bị lệch */
         }
+
+        input:focus {
+            outline: none;
+            border: 1px solid white;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
         button {
             width: 100%;
-            padding: 10px;
+            max-width: 300px; /* Cùng chiều rộng với input */
+            padding: 12px; /* Tăng padding để nút cũng cao hơn */
             border: none;
             border-radius: 5px;
             background: lightblue;
             cursor: pointer;
             font-weight: bold;
+            transition: 0.2s ease-in-out;
         }
+
         button:hover {
             background: deepskyblue;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        
         }
         a {
             color: yellow;
@@ -60,6 +79,7 @@
         function register() {
             var username = document.getElementById("reg_username").value;
             var password = document.getElementById("reg_password").value;
+            document.body.style.cursor = "wait"; // Đổi con trỏ chuột thành loading
             fetch("/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -69,8 +89,10 @@
                     var data = JSON.parse(text);
                     alert(data.message);
                     if (data.status === "success") {
+                        document.body.style.cursor = "default";
                         window.location.href = "/login";
                     }
+                document.body.style.cursor = "default";    
                 } catch (error) {
                     console.error("Phản hồi không phải JSON hợp lệ:", text);
                     alert("Lỗi từ server: " + text);
