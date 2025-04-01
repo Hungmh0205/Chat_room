@@ -37,6 +37,7 @@
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
         }
+        /* Cải thiện thanh cuộn cho #messages */
         #messages {
             height: 300px;
             overflow-y: auto;
@@ -45,23 +46,115 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
         }
-        #msgInput {
-            width: 60%;
+
+        /* Tùy chỉnh thanh cuộn */
+        #messages::-webkit-scrollbar {
+            width: 8px; /* Độ rộng của thanh cuộn */
+        }
+
+        #messages::-webkit-scrollbar-thumb {
+            background-color: #0072ff; /* Màu sắc của thanh cuộn */
+            border-radius: 10px; /* Bo tròn các góc của thanh cuộn */
+            border: 2px solid rgba(0, 0, 0, 0.3); /* Đặt viền xung quanh thanh cuộn */
+        }
+
+        #messages::-webkit-scrollbar-thumb:hover {
+            background-color: #005bb5; /* Màu sắc khi hover lên thanh cuộn */
+        }
+
+        /* Tùy chỉnh thanh cuộn cho danh sách người dùng */
+        #online-users {
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        #online-users::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #online-users::-webkit-scrollbar-thumb {
+            background-color: #0072ff;
+            border-radius: 10px;
+        }
+
+        #online-users::-webkit-scrollbar-thumb:hover {
+            background-color: #005bb5;
+        }
+
+        /* Cải thiện input */
+        input {
+            width: 100%;
+            max-width: 500px;
             padding: 10px;
             margin-top: 10px;
             border-radius: 5px;
             border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-sizing: border-box; /* Đảm bảo padding không làm input dài quá */
         }
+
+        @media (max-width: 768px) {
+            input {
+                width: 90%; /* Giúp input gọn hơn trên điện thoại */
+                max-width: none;
+            }
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        /* Cải thiện button */
         button {
-            padding: 10px;
+            padding: 10px 15px;
             border-radius: 5px;
             border: none;
-            background: lightblue;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
             cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
         }
+
         button:hover {
-            background: deepskyblue;
+            background: linear-gradient(to right, #0072ff, #00c6ff);
+            box-shadow: 0px 0px 10px rgba(0, 114, 255, 0.5);
+            transform: scale(1.05);
         }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .logout-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            border: 0.5px solid black; /* Viền mỏng hơn */
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3); /* Nền trong suốt hơi mờ */
+            transition: all 0.3s ease-in-out;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+            color: #00c6ff;
+        }
+
+        .logout-btn:active {
+            transform: scale(0.95);
+        }
+
+
         #online-users {
             width: 30%;
             background: rgba(0, 0, 0, 0.6);
@@ -69,14 +162,26 @@
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
         }
-        #user-list {
-            list-style: none;
-            padding: 0;
-            text-align: left;
+        #user-list li {
+            margin: 10px 0;
+            padding: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
         }
+
+        #user-list li:hover {
+            background: rgba(0, 0, 0, 0.3);
+            transform: translateX(5px);
+        }
+/* Thêm hiệu ứng cuộn mượt mà */
+        #messages, #online-users {
+            scroll-behavior: smooth;
+        }
+
+        /* Đảm bảo emoji picker không bị tràn ra ngoài */
         .emoji-picker {
-            display: none;
-            position: absolute;
+            position: absolute; /* Đặt vị trí tuyệt đối với input */
             background: white;
             padding: 10px;
             border-radius: 5px;
@@ -84,13 +189,31 @@
             width: 200px;
             max-height: 150px;
             overflow-y: auto;
+            z-index: 1000;
+            display: none; /* Mặc định ẩn */
+            opacity: 0; /* Thêm hiệu ứng mờ */
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out; /* Thêm hiệu ứng scale khi hiển thị */
         }
+
+        .emoji-picker.show {
+            display: block; /* Hiển thị khi cần */
+            opacity: 1; /* Làm sáng emoji picker khi hiển thị */
+            transform: translateY(10px); /* Đẩy emoji picker xuống nhẹ khi mở */
+        }
+
+        /* Đảm bảo emoji picker không bị che khi có nhiều nội dung */
+        body {
+            position: relative;
+        }
+
         .emoji {
             font-size: 20px;
             cursor: pointer;
             margin: 5px;
             display: inline-block;
         }
+
+
         #messages img {
             max-width: 200px;
             border-radius: 5px;
@@ -105,7 +228,6 @@
             border-radius: 5px;
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
         }
-        
     </style>
 </head>
 <body>
@@ -115,7 +237,8 @@
     </video>
     
     <h2>Chào mừng <span id="username"></span> đến với DHT Chat Room!</h2>
-    <a href="/logout" style="color: white;">Đăng xuất</a>
+    <a href="/logout" class="logout-btn">Đăng xuất</a>
+    <a href="/dashboard" class="logout-btn">Video Call</a>
 
     <div id="chat-wrapper">
         <!-- Phần khung chat -->
@@ -141,6 +264,7 @@
     <script>
         var socket = io.connect(window.location.origin);
 
+
         // Tải lịch sử tin nhắn khi trang được load
         window.onload = function() {
             fetch("/history")
@@ -152,6 +276,8 @@
                     msgElement.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]} <span style="font-size: 10px; color: gray;">(${msg[2]})</span>`;
                     chatBox.appendChild(msgElement);
                 });
+
+                chatBox.scrollTop = chatBox.scrollHeight; // Cuộn xuống cuối cùng
             })
             .catch(error => console.error("Lỗi tải lịch sử chat:", error));
         };
@@ -162,6 +288,8 @@
             let msgElement = document.createElement("p");
             msgElement.innerHTML = data;
             chatBox.appendChild(msgElement);
+
+            chatBox.scrollTop = chatBox.scrollHeight; // Cuộn xuống cuối cùng
         });
 
         // Cập nhật danh sách người dùng online
@@ -182,6 +310,7 @@
                 document.getElementById("msgInput").value = "";
             }
         }
+
 
         function uploadFile() {
             var fileInput = document.getElementById("fileInput");
@@ -240,8 +369,6 @@
             };
         }
         
-        
-
         document.addEventListener("DOMContentLoaded", function () {
             const picker = document.getElementById("emojiPicker");
             const input = document.getElementById("msgInput");
@@ -251,16 +378,58 @@
             picker.style.display = "none"; 
             
             function toggleEmojiPicker() {
-                picker.style.display = picker.style.display === "none" || picker.style.display === "" ? "block" : "none";
+                // Đảm bảo emoji picker hiển thị ngay dưới input
+                positionEmojiPicker();
+
+                // Toggle emoji picker visibility
+                if (picker.style.display === "none" || picker.style.display === "") {
+                    picker.style.display = "block";
+                    setTimeout(() => {
+                        picker.classList.add("show");
+                    }, 10); // Chờ một chút để hiệu ứng hoạt động
+                } else {
+                    picker.classList.remove("show");
+                    setTimeout(() => {
+                        picker.style.display = "none";
+                    }, 300); // Đợi hiệu ứng kết thúc trước khi ẩn đi
+                }
             }
-            
+
+            // Đảm bảo emoji picker nằm đúng vị trí dưới input box
+            function positionEmojiPicker() {
+                const inputRect = input.getBoundingClientRect();
+                const pickerRect = picker.getBoundingClientRect();
+                const topPosition = inputRect.bottom + window.scrollY;
+                const leftPosition = inputRect.left + window.scrollX;
+
+                // Đảm bảo emoji picker không tràn ra ngoài màn hình
+                const maxLeft = window.innerWidth - pickerRect.width - 20; // 20px padding
+                const leftPositionAdjusted = Math.min(leftPosition, maxLeft);
+
+                picker.style.top = `${topPosition}px`;
+                picker.style.left = `${leftPositionAdjusted}px`;
+            }
+
+            // Sự kiện click vào emoji button
             emojiButton.addEventListener("click", toggleEmojiPicker);
 
+            // Chọn emoji và thêm vào input
             picker.addEventListener("emoji-click", event => {
                 input.value += event.detail.unicode;
-                picker.style.display = "none";
+                picker.classList.remove("show");
+                setTimeout(() => {
+                    picker.style.display = "none";
+                }, 300);
+            });
+
+            // Gửi tin nhắn khi nhấn Enter
+            input.addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    sendMessage();
+                }
             });
         });
+
     </script>
 </body>
 </html>
