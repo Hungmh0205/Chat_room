@@ -1,0 +1,110 @@
+body {
+    background: none; /* Bỏ nền gradient */
+    overflow: hidden;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Căn giữa nội dung */
+}
+
+.video-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+}
+
+.card {
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.6); /* Trong suốt với độ mờ 60% */
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    backdrop-filter: blur(10px); /* Làm mờ phần nền phía sau card */
+}
+
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px; /* Khoảng cách lớn hơn một chút */
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 14px 28px;
+    font-size: 18px;
+    border-radius: 10px;
+    min-width: 180px;
+    transition: 0.3s ease-in-out;
+}
+
+.btn:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.back-to-dashboard {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+.back-to-dashboard button {
+    padding: 10px 20px;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.back-to-dashboard button:hover {
+    background-color: #ddd;
+}
+
+/* Đảm bảo video không bị lỗi trên iOS */
+#root video {
+    outline: none;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Cài đặt nền cho toàn bộ trang */
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #000; /* Màu nền đen, có thể thay đổi theo nhu cầu */
+}
+
+/* Cài đặt nền cho div chứa video hoặc giao diện chính */
+#root {
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5); /* Nền mờ, có thể thay đổi thành ảnh hoặc màu khác */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Cài đặt kiểu cho nút "Back to Dashboard" */
+.back-to-dashboard {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+.back-to-dashboard button {
+    padding: 10px 20px;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
