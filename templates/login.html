@@ -32,25 +32,44 @@
         }
         input {
             width: 100%;
-            padding: 10px;
+            max-width: 300px; /* Giới hạn chiều rộng tối đa */
+            padding: 12px; /* Tăng padding để ô nhập liệu cao hơn */
             margin: 10px 0;
             border: none;
             border-radius: 5px;
             background: rgba(255, 255, 255, 0.2);
             color: white;
+            transition: 0.3s ease-in-out;
+            box-sizing: border-box; /* Đảm bảo padding không làm chiều rộng bị lệch */
         }
+
+        input:focus {
+            outline: none;
+            border: 1px solid white;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
         button {
             width: 100%;
-            padding: 10px;
+            max-width: 300px; /* Cùng chiều rộng với input */
+            padding: 12px; /* Tăng padding để nút cũng cao hơn */
             border: none;
             border-radius: 5px;
             background: lightblue;
             cursor: pointer;
             font-weight: bold;
+            transition: 0.2s ease-in-out;
         }
+
         button:hover {
             background: deepskyblue;
         }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
         a {
             color: yellow;
             text-decoration: none;
@@ -60,14 +79,21 @@
         function login() {
             var username = document.getElementById("login_username").value;
             var password = document.getElementById("login_password").value;
+            var errorMessage = document.getElementById("error-message");
+
+            document.body.style.cursor = "wait"; // Đổi con trỏ chuột thành loading
+
             fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: `username=${username}&password=${password}`
             }).then(res => res.text()).then(data => {
-                if (data.includes("Sai tài khoản hoặc mật khẩu!")) {
-                    alert("Sai tài khoản hoặc mật khẩu!");
+            if (data.includes("Sai tài khoản hoặc mật khẩu!")) {
+                document.body.style.cursor = "default";
+                errorMessage.style.display = "block"; // Hiển thị lỗi
+                errorMessage.textContent = " Sai tài khoản hoặc mật khẩu!";
                 } else {
+                    document.body.style.cursor = "default";
                     window.location.href = "/chat";
                 }
             });
@@ -85,6 +111,7 @@
         <input id="login_username" type="text" placeholder="Tên đăng nhập">
         <input id="login_password" type="password" placeholder="Mật khẩu">
         <button onclick="login()">Đăng nhập</button>
+        <p id="error-message" style="color: red; display: none; font-size: 14px;">Sai tài khoản hoặc mật khẩu!</p>
         <p>Chưa có tài khoản? <a href="/register">Đăng ký</a></p>
     </div>
 </body>
