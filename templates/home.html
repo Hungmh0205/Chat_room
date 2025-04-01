@@ -16,6 +16,7 @@
             </div>
             <div class="flex items-center space-x-6">
                 <button class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300" onclick="chat()" >Login</button>
+                <button class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300" onclick="signup()" >Sign Up</button>
             </div>
         </div>
     </nav>
@@ -35,15 +36,51 @@
             <button class="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full text-lg font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300" onclick="chat()" >Start Chatting Now</button>
         </div>
     </header>
+    <section class="py-20 bg-white/50 dark:bg-gray-800/50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">Amazing Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <img src="https://t3.ftcdn.net/jpg/04/68/70/46/360_F_468704699_47zOIFEm6wCnxMdddOusxTnhgMwkVO2A.jpg" alt="Secure messaging" class="w-16 h-16 mb-4 rounded-full mx-auto">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Secure messaging</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Secure real-time messaging with advanced security technologs</p>
+                </div>
+                <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <img src="https://images.unsplash.com/photo-1584438784894-089d6a62b8fa" alt="Chat Real-time" class="w-16 h-16 mb-4 rounded-full mx-auto">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Chat Real-time</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Seamless real-time messaging with instant delivery</p>
+                </div>
+                <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <img src="https://images.unsplash.com/photo-1590650046871-92c887180603" alt="Video Call" class="w-16 h-16 mb-4 rounded-full mx-auto">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Video Call</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">High-quality video calls</p>
+                </div>
+                <div class="p-6 rounded-2xl bg-white dark:bg-gray-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQTm2bFMciv16l0wBiaKmevYdJLulC4D2F4fIxBKWmcyvlTvV3eLrAOQtwUchr6etuVKFw&usqp=CAU" alt="Upload file" class="w-16 h-16 mb-4 rounded-full mx-auto">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Upload file</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-center">Upload and share files effortlessly for seamless collaboration and communication</p>
+                </div>
+            </div>
+        </div>
+    </section>
     <footer class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg py-12">
         <div class="container mx-auto px-6 text-center">
             <p class="text-gray-600 dark:text-gray-300">&copy; 2025 DHT.All rights reserved.</p>
         </div>
     </footer>
     <script>
-        function chat() {
+    function chat() {
+        document.body.style.cursor = "wait";  // Đổi con trỏ chuột thành chờ
+        setTimeout(() => {
             window.location.href = "/chat";
-        }
+        }, 300);  // Có thể thay đổi thời gian chờ tùy thích
+    }
+    function signup() {
+        document.body.style.cursor = "wait";  // Đổi con trỏ chuột thành chờ
+        setTimeout(() => {
+            window.location.href = "/register";
+        }, 300);  // Có thể thay đổi thời gian chờ tùy thích
+    }
     </script>
 </body>
 </html>
