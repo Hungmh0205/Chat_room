@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import requests
 from flask import Flask, render_template, request, redirect, session, jsonify
 from flask_socketio import SocketIO, send, emit
 from flask_bcrypt import Bcrypt
@@ -49,6 +50,26 @@ init_db()
 
 # Danh sách người dùng online
 users_online = set()
+
+def query_llama3(prompt):
+    try:
+        response = requests.post("http://localhost:11434/api/generate", json={
+            "model": "mistral:instruct",
+            "prompt": prompt,
+            "stream": True
+        })
+
+        data = response.json()
+        print("📥 Phản hồi từ Ollama:", data)  # In ra log để kiểm tra
+
+        # Một số API Ollama trả về: {"response": "abc", "done": true}
+        if "response" in data:
+            return data["response"]
+        else:
+            return f"⚠️ Không có phản hồi hợp lệ từ AI: {data}"
+    except Exception as e:
+        return f"❌ Lỗi kết nối AI: {str(e)}"
+
 
 # Trang chủ
 @app.route("/")
@@ -181,16 +202,36 @@ def chat_history():
 @socketio.on("message")
 def handle_message(msg):
     if "username" not in session:
-        return  # Chặn tin nhắn từ user chưa đăng nhập
-    
+        return
+
     username = session["username"]
+
+    # Nếu tin nhắn là gọi AI
+    if msg.startswith("@DHT_AI"):
+        prompt = msg.replace("@DHT_AI", "").strip()
+        ai_response = query_llama3(prompt)
+        full_msg = f"<strong>{username} hỏi AI:</strong> {prompt}<br><strong>DHT_AI:</strong> {ai_response}"
+        
+        # Lưu vào DB
+        conn = sqlite3.connect("chat.db")
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, full_msg))
+        conn.commit()
+        conn.close()
+
+        # Phát cho mọi người
+        socketio.emit("message", full_msg)
+        return
+
+    # Tin nhắn bình thường
     conn = sqlite3.connect("chat.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, msg))
     conn.commit()
     conn.close()
     
-    send(f"{username}: {msg}", broadcast=True)   
+    send(f"{username}: {msg}", broadcast=True)
+  
 
 
 # Xử lý người dùng online
