@@ -26,6 +26,7 @@ class ChatManager(QMainWindow):
         
         self.init_messages_tab()
         self.init_users_tab()
+        self.init_private_messages_tab()
     
     def init_messages_tab(self):
         self.messages_tab = QWidget()
@@ -84,6 +85,31 @@ class ChatManager(QMainWindow):
         self.search_user_button = QPushButton("Tìm kiếm")
         self.search_user_button.clicked.connect(self.search_user)
         layout.addWidget(self.search_user_button)
+    
+    def init_private_messages_tab(self):
+        self.private_messages_tab = QWidget()
+        self.tabs.addTab(self.private_messages_tab, "Quản lý Tin nhắn Riêng")
+        layout = QVBoxLayout()
+        self.private_messages_tab.setLayout(layout)
+        
+        self.load_private_messages_button = QPushButton("📜 Tải lịch sử tin nhắn riêng")
+        self.load_private_messages_button.clicked.connect(self.load_private_messages)
+        layout.addWidget(self.load_private_messages_button)
+        
+        self.private_message_table = QTableWidget()
+        layout.addWidget(self.private_message_table)
+        
+        button_layout = QHBoxLayout()
+        
+        self.delete_private_message_button = QPushButton("🗑️ Xóa tin nhắn riêng được chọn")
+        self.delete_private_message_button.clicked.connect(self.delete_private_message)
+        button_layout.addWidget(self.delete_private_message_button)
+        
+        self.delete_all_private_messages_button = QPushButton("🧹 Xóa toàn bộ tin nhắn riêng")
+        self.delete_all_private_messages_button.clicked.connect(self.delete_all_private_messages)
+        button_layout.addWidget(self.delete_all_private_messages_button)
+        
+        layout.addLayout(button_layout)
     
     def load_messages(self):
         conn = sqlite3.connect("chat.db")
@@ -176,6 +202,48 @@ class ChatManager(QMainWindow):
                 conn.commit()
                 conn.close()
                 QMessageBox.information(self, "Thành công", "Đã đổi mật khẩu!")
+    
+    def load_private_messages(self):
+        conn = sqlite3.connect("chat.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, from_user, to_user, message, timestamp 
+            FROM private_messages 
+            ORDER BY timestamp DESC
+        """)
+        private_messages = cursor.fetchall()
+        conn.close()
+        
+        self.private_message_table.setRowCount(len(private_messages))
+        self.private_message_table.setColumnCount(5)
+        self.private_message_table.setHorizontalHeaderLabels(["ID", "Người gửi", "Người nhận", "Tin nhắn", "Thời gian"])
+        
+        for row_idx, row_data in enumerate(private_messages):
+            for col_idx, col_data in enumerate(row_data):
+                self.private_message_table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
+
+    def delete_private_message(self):
+        selected_row = self.private_message_table.currentRow()
+        if selected_row >= 0:
+            msg_id = self.private_message_table.item(selected_row, 0).text()
+            conn = sqlite3.connect("chat.db")
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM private_messages WHERE id=?", (msg_id,))
+            conn.commit()
+            conn.close()
+            self.load_private_messages()
+            QMessageBox.information(self, "Thành công", "Đã xóa tin nhắn riêng!")
+
+    def delete_all_private_messages(self):
+        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc chắn muốn xóa toàn bộ tin nhắn riêng?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            conn = sqlite3.connect("chat.db")
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM private_messages")
+            conn.commit()
+            conn.close()
+            self.load_private_messages()
+            QMessageBox.information(self, "Thành công", "Đã xóa toàn bộ tin nhắn riêng!")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
