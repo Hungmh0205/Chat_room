@@ -28,7 +28,7 @@ DHT Chat Room là một ứng dụng chat thời gian thực với nhiều tính
 ## **Hướng dẫn cài đặt**
 1. **Clone dự án:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Hungmh0205/Chat_room.git
    cd Chat_room
 
 2. **Cài thư viện cần thiết**
