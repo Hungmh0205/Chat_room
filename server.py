@@ -10,14 +10,25 @@ from werkzeug.utils import secure_filename
 # Khởi tạo Flask & SocketIO
 app = Flask(__name__)
 app.secret_key = "secret_key"
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, 
+    cors_allowed_origins="*",
+    ping_timeout=10,
+    ping_interval=5,
+    reconnection=True,
+    reconnection_attempts=5,
+    logger=True,
+    engineio_logger=True
+)
 bcrypt = Bcrypt(app)
 
 # Cấu hình thư mục upload file
 UPLOAD_FOLDER = "static/uploads"
+MUSIC_FOLDER = "static/music"  # Thêm thư mục cho nhạc
 ALLOWED_EXTENSIONS = None  # Cho phép tất cả các loại file
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(MUSIC_FOLDER, exist_ok=True)  # Tạo thư mục music nếu chưa có
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MUSIC_FOLDER"] = MUSIC_FOLDER
 
 # Kiểm tra định dạng file hợp lệ
 def allowed_file(filename):
@@ -42,6 +53,15 @@ def init_db():
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS private_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user TEXT,
+        to_user TEXT,
+        message TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     conn.commit()
     conn.close()
 
@@ -51,24 +71,9 @@ init_db()
 # Danh sách người dùng online
 users_online = set()
 
-def query_llama3(prompt):
-    try:
-        response = requests.post("http://localhost:11434/api/generate", json={
-            "model": "mistral:instruct",
-            "prompt": prompt,
-            "stream": True
-        })
+# Lưu trữ thông tin socket của người dùng
+user_sockets = {}
 
-        data = response.json()
-        print("📥 Phản hồi từ Ollama:", data)  # In ra log để kiểm tra
-
-        # Một số API Ollama trả về: {"response": "abc", "done": true}
-        if "response" in data:
-            return data["response"]
-        else:
-            return f"⚠️ Không có phản hồi hợp lệ từ AI: {data}"
-    except Exception as e:
-        return f"❌ Lỗi kết nối AI: {str(e)}"
 
 
 # Trang chủ
@@ -205,33 +210,16 @@ def handle_message(msg):
         return
 
     username = session["username"]
-
-    # Nếu tin nhắn là gọi AI
-    if msg.startswith("@DHT_AI"):
-        prompt = msg.replace("@DHT_AI", "").strip()
-        ai_response = query_llama3(prompt)
-        full_msg = f"<strong>{username} hỏi AI:</strong> {prompt}<br><strong>DHT_AI:</strong> {ai_response}"
-        
-        # Lưu vào DB
-        conn = sqlite3.connect("chat.db")
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, full_msg))
-        conn.commit()
-        conn.close()
-
-        # Phát cho mọi người
-        socketio.emit("message", full_msg)
-        return
-
-    # Tin nhắn bình thường
+    
+    # Lưu tin nhắn vào database
     conn = sqlite3.connect("chat.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO messages (username, message) VALUES (?, ?)", (username, msg))
     conn.commit()
     conn.close()
     
+    # Gửi tin nhắn đến tất cả người dùng
     send(f"{username}: {msg}", broadcast=True)
-  
 
 
 # Xử lý người dùng online
@@ -240,19 +228,212 @@ def handle_connect():
     username = session.get("username", "Ẩn danh")
     if username not in users_online:
         users_online.add(username)
+    user_sockets[username] = request.sid
     emit("update_users", list(users_online), broadcast=True)
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    username = session.get("username", "Ẩn danh")
-    if username in users_online:
-        users_online.remove(username)
-    emit("update_users", list(users_online), broadcast=True)
+    try:
+        username = session.get("username", "Ẩn danh")
+        if username in users_online:
+            users_online.remove(username)
+        if username in user_sockets:
+            del user_sockets[username]
+        emit("update_users", list(users_online), broadcast=True)
+    except Exception as e:
+        print(f"Error in disconnect handler: {str(e)}")
+
+@app.route("/upload_music", methods=["POST"])
+def upload_music():
+    if "music" not in request.files:
+        return jsonify({"status": "error", "message": "Không có file nhạc!"})
+
+    file = request.files["music"]
+    if file.filename == "":
+        return jsonify({"status": "error", "message": "Chưa chọn file nhạc!"})
+
+    if file and file.filename.lower().endswith(('mp3', 'wav', 'ogg')):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config["MUSIC_FOLDER"], filename)
+        file.save(filepath)
+        return jsonify({
+            "status": "success", 
+            "message": "Tải nhạc thành công!",
+            "url": f"/static/music/{filename}"
+        })
+
+    return jsonify({"status": "error", "message": "Chỉ chấp nhận file nhạc (MP3, WAV, OGG)!"})
+
+@app.route("/get_music_list")
+def get_music_list():
+    music_files = []
+    for file in os.listdir(app.config["MUSIC_FOLDER"]):
+        if file.lower().endswith(('mp3', 'wav', 'ogg')):
+            music_files.append({
+                "name": file,
+                "url": f"/static/music/{file}"
+            })
+    return jsonify(music_files)
+
+# Xử lý lỗi kết nối
+@socketio.on_error_default
+def default_error_handler(e):
+    print(f"SocketIO error: {str(e)}")
+    return False
+
+@socketio.on_error
+def error_handler(e):
+    print(f"SocketIO event error: {str(e)}")
+    return False
+
+# Xử lý tin nhắn riêng tư
+@socketio.on("private_message")
+def handle_private_message(data):
+    if "username" not in session:
+        return
+    
+    from_user = session["username"]
+    to_user = data.get("to_user")
+    message = data.get("message")
+    
+    if not to_user or not message:
+        return
+    
+    # Lưu tin nhắn vào database
+    conn = sqlite3.connect("chat.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO private_messages (from_user, to_user, message) 
+        VALUES (?, ?, ?)
+    """, (from_user, to_user, message))
+    conn.commit()
+    conn.close()
+    
+    # Gửi tin nhắn đến người nhận nếu họ online
+    if to_user in user_sockets:
+        emit("private_message", {
+            "from": from_user,
+            "message": message
+        }, to=user_sockets[to_user])
+
+    
+    # Gửi tin nhắn về cho người gửi
+    emit("private_message", {
+        "from": from_user,
+        "message": message
+    }, room=request.sid)
+
+# Upload file riêng tư
+@app.route("/upload_private_file", methods=["POST"])
+def upload_private_file():
+    if "file" not in request.files:
+        return jsonify({"status": "error", "message": "Không có file!"})
+    
+    file = request.files["file"]
+    to_user = request.form.get("to_user")
+    
+    if file.filename == "":
+        return jsonify({"status": "error", "message": "Chưa chọn file!"})
+    
+    if not to_user:
+        return jsonify({"status": "error", "message": "Thiếu thông tin người nhận!"})
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(filepath)
+        
+        file_url = f"/static/uploads/{filename}"
+        from_user = session.get("username", "Ẩn danh")
+        
+        # Xác định loại file để hiển thị phù hợp
+        if filename.lower().endswith(("png", "jpg", "jpeg", "gif")):
+            message_content = f"{from_user} đã gửi ảnh: <br><a href='{file_url}' target='_blank'><img src='{file_url}' width='200px'></a>"
+        elif filename.lower().endswith(("mp4", "webm", "ogg")):
+            message_content = f"{from_user} đã gửi video: <br><video width='320' height='240' controls><source src='{file_url}' type='video/mp4'>Trình duyệt không hỗ trợ video.</video>"
+        elif filename.lower().endswith(("mp3", "wav", "ogg")):
+            message_content = f"{from_user} đã gửi âm thanh: <br><audio controls><source src='{file_url}' type='audio/mpeg'>Trình duyệt không hỗ trợ âm thanh.</audio>"
+        else:
+            message_content = f"{from_user} đã gửi file: <a href='{file_url}' target='_blank'>{filename}</a>"
+        
+        # Lưu vào database
+        conn = sqlite3.connect("chat.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO private_messages (from_user, to_user, message) 
+            VALUES (?, ?, ?)
+        """, (from_user, to_user, message_content))
+        conn.commit()
+        conn.close()
+        
+        # Gửi tin nhắn đến người nhận nếu họ online
+        if to_user in user_sockets:
+            socketio.emit("private_message", {
+                "from": from_user,
+                "message": message_content
+            }, room=user_sockets[to_user])
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Tải file thành công!", 
+            "url": file_url
+        })
+    
+    return jsonify({"status": "error", "message": "Định dạng file không hợp lệ!"})
+
+@app.route("/private_history")
+def private_chat_history():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    username = session["username"]
+    conn = sqlite3.connect("chat.db")
+    cursor = conn.cursor()
+    
+    # Lấy tin nhắn riêng tư của người dùng (cả gửi và nhận)
+    cursor.execute("""
+        SELECT from_user, to_user, message, timestamp 
+        FROM private_messages 
+        WHERE from_user = ? OR to_user = ?
+        ORDER BY timestamp DESC
+    """, (username, username))
+    
+    messages = cursor.fetchall()
+    conn.close()
+    
+    # Chuyển đổi kết quả thành danh sách dict
+    history = []
+    for msg in messages:
+        history.append({
+            "from_user": msg[0],
+            "to_user": msg[1],
+            "message": msg[2],
+            "timestamp": msg[3]
+        })
+    
+    return jsonify(history)
+
+# Thêm route để lấy tên người dùng hiện tại
+@app.route("/get_username")
+def get_username():
+    if "username" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    return jsonify({"username": session["username"]})
 
 # Khởi động server với ngrok
 if __name__ == "__main__":
-    from pyngrok import ngrok
-    public_url = ngrok.connect(5000).public_url
-    print(f"🔥 Server đang chạy tại: {public_url}")
-    socketio.run(app, host="0.0.0.0", port=5000)
+    try:
+        from pyngrok import ngrok
+        public_url = ngrok.connect(5000).public_url
+        print(f"🔥 Server đang chạy tại: {public_url}")
+        socketio.run(app, 
+            host="0.0.0.0", 
+            port=5000,
+            debug=True,
+            use_reloader=False,
+            log_output=True
+        )
+    except Exception as e:
+        print(f"Server error: {str(e)}")
     
