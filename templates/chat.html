@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Room</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script type="module" src="https://unpkg.com/emoji-picker-element"></script>
 
     <style>
@@ -36,6 +37,7 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.5);
+            margin-bottom: 80px; /* Add space for music player */
         }
         /* Cải thiện thanh cuộn cho #messages */
         #messages {
@@ -228,10 +230,488 @@
             border-radius: 5px;
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
         }
+
+        /* Thêm style cho phần điều khiển nhạc */
+        .music-controls {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .music-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid white;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .music-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .music-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            z-index: 1001;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .music-modal.show {
+            display: flex;
+        }
+
+        .music-modal h3 {
+            margin: 0 0 20px 0;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        #musicList {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .music-item {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .music-item:before {
+            content: '🎵';
+            font-size: 16px;
+        }
+
+        .music-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .music-item.playing {
+            background: rgba(0, 114, 255, 0.3);
+            border: 1px solid rgba(0, 114, 255, 0.5);
+        }
+
+        #musicList::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #musicList::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        #musicList::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+        }
+
+        #musicList::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Thêm style cho music player */
+        .music-player {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            gap: 40px;
+        }
+
+        .music-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 300px;
+        }
+
+        .music-title {
+            font-size: 14px;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        .music-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 300px;
+        }
+
+        #volumeSlider {
+            width: 100px;
+            height: 5px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        #volumeSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        #volumeSlider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #volumeSlider::-ms-thumb {
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #volumeSlider::-webkit-slider-runnable-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            height: 5px;
+        }
+
+        #volumeSlider::-moz-range-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            height: 5px;
+        }
+
+        #volumeSlider::-ms-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            height: 5px;
+            border: none;
+            color: transparent;
+        }
+
+        .music-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .music-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .music-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Ẩn các controls cũ */
+        .music-controls:not(.music-player .music-controls) {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .music-player {
+                padding: 10px 15px;
+                gap: 20px;
+            }
+
+            .music-info {
+                width: 200px;
+            }
+
+            .music-title {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+            .volume-control {
+                width: 200px;
+                gap: 10px;
+            }
+
+            #volumeSlider {
+                width: 80px;
+            }
+
+            .music-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        /* Thêm style cho toast thông báo */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1002;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-notification.show {
+            display: block;
+        }
+
+        /* Thêm style cho modal chat riêng tư */
+        .private-chat-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            z-index: 1001;
+            width: 80%;
+            max-width: 800px;
+            height: 80vh;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            flex-direction: column;
+        }
+
+        .private-chat-modal.show {
+            display: flex;
+        }
+
+        .private-chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .private-chat-title {
+            font-size: 18px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .close-private-chat {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-private-chat:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .private-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .private-chat-input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .private-chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .private-chat-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .private-chat-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .private-chat-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .private-chat-file-input {
+            display: none;
+        }
+
+        .private-chat-file-label {
+            padding: 10px 15px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .private-chat-file-label:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            background: rgba(0, 114, 255, 0.3);
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+
+        .message.received {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: auto;
+            border-bottom-left-radius: 0;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <video autoplay muted loop id="video-bg">
+    <video autoplay muted loop id="video-bg" preload="auto">
         <source src="{{ url_for('static', filename='video1.mp4') }}" type="video/mp4">
         Trình duyệt của bạn không hỗ trợ video.
     </video>
@@ -239,6 +719,94 @@
     <h2>Chào mừng <span id="username"></span> đến với DHT Chat Room!</h2>
     <a href="/logout" class="logout-btn">Đăng xuất</a>
     <a href="/dashboard" class="logout-btn">Video Call</a>
+
+    <!-- Thêm phần điều khiển nhạc -->
+    <div class="music-controls">
+        <button class="music-btn" id="toggleMusic">🎵</button>
+        <button class="music-btn" id="changeMusic">🎼</button>
+        <audio id="bgMusic" loop>
+            <source src="{{ url_for('static', filename='music/default.mp3') }}" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <!-- Modal để thay đổi nhạc -->
+    <div class="modal-overlay" id="musicModalOverlay"></div>
+    <div class="music-modal" id="musicModal">
+        <h3 style="color: white;">Thay đổi nhạc nền</h3>
+        <input type="text" id="musicUrl" placeholder="Nhập URL của file nhạc MP3...">
+        <button onclick="changeMusic()">Xác nhận</button>
+    </div>
+
+    <!-- Music Player -->
+    <div class="music-player">
+        <div class="music-info">
+            <div class="music-title">Chưa chọn nhạc</div>
+        </div>
+        
+        <div class="music-controls">
+            <button class="music-btn" id="playBtn" type="button">▶️</button>
+        </div>
+
+        <div class="volume-control">
+            <span>🔊</span>
+            <input type="range" id="volumeSlider" min="0" max="100" value="50">
+            <button class="music-btn" id="changeMusicBtn" type="button">🎼</button>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+    <div id="youtube-player"></div>
+
+    <!-- Music Source Modal -->
+    <div class="modal-overlay" id="musicSourceModalOverlay"></div>
+    <div class="music-modal" id="musicSourceModal">
+        <h3>Chọn nguồn nhạc</h3>
+        <button id="uploadMusicBtn" type="button">📂 Tải nhạc lên</button>
+        <button id="youtubeInputBtn" type="button">🎵 Dùng link YouTube</button>
+        <div id="musicList">
+            <h4 style="color: white; margin: 10px 0;">Danh sách nhạc đã tải lên:</h4>
+        </div>
+    </div>
+
+    <!-- Upload Music Modal -->
+    <div class="modal-overlay" id="uploadMusicModalOverlay"></div>
+    <div class="music-modal" id="uploadMusicModal">
+        <h3>Tải nhạc lên</h3>
+        <input type="file" id="musicFile" accept=".mp3,.wav,.ogg">
+        <button id="confirmUploadBtn" type="button">Xác nhận</button>
+    </div>
+
+    <!-- YouTube Link Modal -->
+    <div class="modal-overlay" id="youtubeLinkModalOverlay"></div>
+    <div class="music-modal" id="youtubeLinkModal">
+        <h3>Nhập link YouTube</h3>
+        <input type="text" id="youtubeUrl" placeholder="Nhập link YouTube...">
+        <button id="confirmYoutubeBtn" type="button">Xác nhận</button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-notification" id="toastNotification"></div>
+
+    <!-- Thêm modal chat riêng tư -->
+    <div class="modal-overlay" id="privateChatOverlay"></div>
+    <div class="private-chat-modal" id="privateChatModal">
+        <div class="private-chat-header">
+            <div class="private-chat-title">Chat với <span id="privateChatUsername"></span></div>
+            <button class="close-private-chat" id="closePrivateChat">×</button>
+        </div>
+        <div class="private-chat-messages" id="privateChatMessages"></div>
+        <div class="private-chat-input-area">
+            <div class="private-chat-input-row">
+                <input type="text" class="private-chat-input" id="privateChatInput" placeholder="Nhập tin nhắn...">
+                <button id="privateChatEmojiBtn">😊</button>
+            </div>
+            <div class="private-chat-buttons">
+                <input type="file" id="privateChatFileInput" class="private-chat-file-input">
+                <label for="privateChatFileInput" class="private-chat-file-label">📎 Gửi file</label>
+                <button onclick="sendPrivateMessage()">Gửi</button>
+            </div>
+        </div>
+    </div>
 
     <div id="chat-wrapper">
         <!-- Phần khung chat -->
@@ -250,8 +818,7 @@
             <emoji-picker id="emojiPicker"></emoji-picker>
             <br><br>
             <input type="file" id="fileInput">
-            <button onclick="uploadFile()">📂 Gửi file</button>
-
+            <button onclick="uploadFile()">Gửi file</button>
         </div>
 
         <!-- Phần hiển thị người dùng online -->
@@ -262,11 +829,392 @@
     </div>
 
     <script>
-        var socket = io.connect(window.location.origin);
+        // Khởi tạo biến toàn cục
+        const socket = io.connect(window.location.origin);
+        let audioPlayer = document.getElementById('audio-player');
+        let playBtn = document.getElementById('playBtn');
+        let volumeSlider = document.getElementById('volumeSlider');
+        let musicTitle = document.querySelector('.music-title');
+        let musicList = document.getElementById('musicList');
+        let changeMusicBtn = document.getElementById('changeMusicBtn');
+        let uploadMusicBtn = document.getElementById('uploadMusicBtn');
+        let youtubeInputBtn = document.getElementById('youtubeInputBtn');
+        let confirmUploadBtn = document.getElementById('confirmUploadBtn');
+        let confirmYoutubeBtn = document.getElementById('confirmYoutubeBtn');
+        let isPlaying = false;
+        let isYoutubeMode = false;
+        let youtubePlayer = null;
+        let currentPrivateChat = null; // Thêm biến để theo dõi cuộc trò chuyện riêng tư hiện tại
+        let username = ""; // Thêm biến để lưu tên người dùng hiện tại
 
+        // Khởi tạo audio player
+        if (!audioPlayer) {
+            audioPlayer = new Audio();
+            document.body.appendChild(audioPlayer);
+        }
+
+        // Load file nhạc mặc định
+        function loadDefaultMusic() {
+            const defaultMusicUrl = "{{ url_for('static', filename='music/default.mp3') }}";
+            audioPlayer.src = defaultMusicUrl;
+            musicTitle.textContent = "default.mp3";
+            audioPlayer.volume = volumeSlider.value / 100;
+            
+            // Kiểm tra xem file có tồn tại không
+            fetch(defaultMusicUrl)
+                .then(response => {
+                    if (response.ok) {
+                        console.log("Đã tìm thấy file nhạc mặc định");
+                    } else {
+                        console.error("Không tìm thấy file nhạc mặc định");
+                        musicTitle.textContent = "Chưa chọn nhạc";
+                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi khi kiểm tra file nhạc mặc định:", error);
+                    musicTitle.textContent = "Chưa chọn nhạc";
+                });
+        }
+
+        // Load file nhạc mặc định khi khởi tạo
+        loadDefaultMusic();
+
+        // Xử lý sự kiện play/pause
+        playBtn.addEventListener('click', function() {
+            if (!audioPlayer.src) {
+                alert('Vui lòng chọn bài hát!');
+                return;
+            }
+
+            if (audioPlayer.paused) {
+                audioPlayer.play()
+                    .then(() => {
+                        playBtn.textContent = '⏸️';
+                        isPlaying = true;
+                    })
+                    .catch(error => {
+                        console.error('Error playing audio:', error);
+                        alert('Có lỗi khi phát nhạc. Vui lòng thử lại!');
+                    });
+            } else {
+                audioPlayer.pause();
+                playBtn.textContent = '▶️';
+                isPlaying = false;
+            }
+        });
+
+        // Xử lý sự kiện cho thanh âm lượng
+        volumeSlider.addEventListener('input', function() {
+            const volume = this.value / 100;
+            if (isYoutubeMode && youtubePlayer) {
+                youtubePlayer.setVolume(this.value);
+            } else if (audioPlayer) {
+                audioPlayer.volume = volume;
+            }
+        });
+
+        // Khởi tạo YouTube Player
+        function initYouTubePlayer() {
+            if (typeof YT !== 'undefined' && YT.Player) {
+                youtubePlayer = new YT.Player('youtube-player', {
+                    height: '0',
+                    width: '0',
+                    playerVars: {
+                        'autoplay': 0,
+                        'controls': 0,
+                        'disablekb': 1,
+                        'fs': 0,
+                        'modestbranding': 1,
+                        'origin': window.location.origin
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange,
+                        'onError': onPlayerError
+                    }
+                });
+            } else {
+                setTimeout(initYouTubePlayer, 100);
+            }
+        }
+
+        // Load YouTube API
+        function loadYouTubeAPI() {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        // YouTube Player Events
+        function onPlayerReady(event) {
+            console.log('YouTube Player Ready');
+            event.target.setVolume(volumeSlider.value);
+        }
+
+        function onPlayerStateChange(event) {
+            switch(event.data) {
+                case YT.PlayerState.PLAYING:
+                    playBtn.textContent = '⏸️';
+                    break;
+                case YT.PlayerState.PAUSED:
+                case YT.PlayerState.ENDED:
+                    playBtn.textContent = '▶️';
+                    break;
+            }
+        }
+
+        function onPlayerError(event) {
+            console.error('YouTube Player Error:', event.data);
+            playBtn.textContent = '▶️';
+            alert('Không thể phát video này. Vui lòng thử video khác.');
+        }
+
+        // Xử lý phát nhạc local
+        async function playLocalMusic(url, title) {
+            try {
+                if (isYoutubeMode && youtubePlayer) {
+                    youtubePlayer.stopVideo();
+                    isYoutubeMode = false;
+                }
+
+                if (audioPlayer.src === url && !audioPlayer.paused) {
+                    audioPlayer.pause();
+                    playBtn.textContent = '▶️';
+                    return;
+                }
+
+                audioPlayer.src = url;
+                audioPlayer.volume = volumeSlider.value / 100;
+                
+                await audioPlayer.play();
+                playBtn.textContent = '⏸️';
+                musicTitle.textContent = title;
+                
+                // Xử lý sự kiện kết thúc
+                audioPlayer.onended = function() {
+                    playBtn.textContent = '▶️';
+                };
+            } catch (error) {
+                console.error('Error playing local music:', error);
+                alert('Có lỗi khi phát nhạc. Vui lòng thử lại!');
+            }
+        }
+
+        // Xử lý upload nhạc
+        async function uploadMusic(e) {
+            if (e) e.preventDefault();
+            
+            const fileInput = document.getElementById('musicFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Vui lòng chọn file nhạc!');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('music', file);
+
+                const response = await fetch('/upload_music', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    await playLocalMusic(data.url, file.name);
+                    await loadMusicList();
+                    hideAllModals();
+                    fileInput.value = '';
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error uploading music:', error);
+                alert('Lỗi khi tải nhạc lên!');
+            }
+        }
+
+        // Khởi tạo
+        loadYouTubeAPI();
+        window.onYouTubeIframeAPIReady = initYouTubePlayer;
+
+        // Event Listeners cho các nút
+        changeMusicBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showModal('musicSourceModal');
+        });
+
+        uploadMusicBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            hideModal('musicSourceModal');
+            showModal('uploadMusicModal');
+        });
+
+        youtubeInputBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            hideModal('musicSourceModal');
+            showModal('youtubeLinkModal');
+        });
+
+        confirmUploadBtn.addEventListener('click', uploadMusic);
+        confirmYoutubeBtn.addEventListener('click', playYoutubeMusic);
+
+        // Modal Functions
+        function showModal(modalId) {
+            hideAllModals();
+            document.getElementById(modalId).classList.add('show');
+            document.getElementById(modalId + 'Overlay').classList.add('show');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            document.getElementById(modalId + 'Overlay').classList.remove('show');
+        }
+
+        function hideAllModals() {
+            document.querySelectorAll('.modal-overlay, .music-modal').forEach(modal => {
+                modal.classList.remove('show');
+            });
+        }
+
+        // Close modals when clicking overlay
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    hideAllModals();
+                }
+            });
+        });
+
+        // Thêm phím ESC để đóng modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideAllModals();
+            }
+        });
+
+        // Ngăn chặn sự kiện click từ modal content lan ra ngoài
+        document.querySelectorAll('.music-modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        // YouTube Functions
+        function getYouTubeId(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+
+        async function playYoutubeMusic(e) {
+            if (e) e.preventDefault();
+            
+            const url = document.getElementById('youtubeUrl').value.trim();
+            if (!url) {
+                alert('Vui lòng nhập link YouTube!');
+                return;
+            }
+
+            const videoId = getYouTubeId(url);
+            if (!videoId) {
+                alert('Link YouTube không hợp lệ!');
+                return;
+            }
+
+            try {
+                if (!isYoutubeMode) {
+                    audioPlayer.pause();
+                }
+
+                if (!youtubePlayer) {
+                    alert('YouTube Player chưa sẵn sàng. Vui lòng thử lại sau vài giây.');
+                    loadYouTubeAPI();
+                    return;
+                }
+
+                youtubePlayer.loadVideoById({
+                    videoId: videoId,
+                    startSeconds: 0,
+                    suggestedQuality: 'small'
+                });
+
+                isYoutubeMode = true;
+                isPlaying = true;
+                playBtn.textContent = '⏸️';
+
+                try {
+                    const response = await fetch(`https://noembed.com/embed?url=${url}`);
+                    const data = await response.json();
+                    musicTitle.textContent = data.title || 'YouTube Music';
+                } catch (error) {
+                    console.error('Error fetching video title:', error);
+                    musicTitle.textContent = 'YouTube Music';
+                }
+
+                hideAllModals();
+                document.getElementById('youtubeUrl').value = '';
+            } catch (error) {
+                console.error('Error playing YouTube video:', error);
+                alert('Có lỗi khi phát video. Vui lòng thử lại!');
+            }
+        }
+
+        // Load music list
+        async function loadMusicList() {
+            try {
+                const response = await fetch('/get_music_list');
+                const music = await response.json();
+                
+                const musicList = document.getElementById('musicList');
+                musicList.innerHTML = '<h4 style="color: white; margin: 10px 0;">Danh sách nhạc đã tải lên:</h4>';
+                
+                if (music.length === 0) {
+                    musicList.innerHTML += '<p style="color: #999; text-align: center; padding: 20px;">Chưa có bài hát nào</p>';
+                    return;
+                }
+                
+                music.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'music-item';
+                    div.textContent = item.name;
+                    div.addEventListener('click', async function() {
+                        try {
+                            // Xóa class playing từ item cũ
+                            document.querySelectorAll('.music-item.playing').forEach(el => el.classList.remove('playing'));
+                            
+                            // Thêm class playing cho item được chọn
+                            div.classList.add('playing');
+                            
+                            await playLocalMusic(item.url, item.name);
+                            hideAllModals();
+                        } catch (error) {
+                            console.error('Error playing music:', error);
+                            alert('Có lỗi khi phát nhạc. Vui lòng thử lại!');
+                        }
+                    });
+                    musicList.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading music list:', error);
+                document.getElementById('musicList').innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Không thể tải danh sách nhạc</p>';
+            }
+        }
 
         // Tải lịch sử tin nhắn khi trang được load
         window.onload = function() {
+            // Lấy tên người dùng từ session
+            fetch("/get_username")
+            .then(response => response.json())
+            .then(data => {
+                username = data.username;
+                document.getElementById("username").textContent = username;
+            })
+            .catch(error => console.error("Lỗi lấy tên người dùng:", error));
+            
             fetch("/history")
             .then(response => response.json())
             .then(messages => {
@@ -297,20 +1245,28 @@
             let userList = document.getElementById("user-list");
             userList.innerHTML = ""; // Xóa danh sách cũ
             users.forEach(user => {
-                let userItem = document.createElement("li");
-                userItem.textContent = user;
-                userList.appendChild(userItem);
+                if (user !== username) { // Không hiển thị chính mình
+                    let userItem = document.createElement("li");
+                    userItem.className = "user-item";
+                    userItem.textContent = user;
+                    userItem.addEventListener("click", function() {
+                        openPrivateChat(user);
+                    });
+                    userList.appendChild(userItem);
+                }
             });
         });
 
         function sendMessage() {
-            var msg = document.getElementById("msgInput").value;
-            if (msg.trim() !== "") {
-                socket.send(msg);
-                document.getElementById("msgInput").value = "";
+            const input = document.getElementById('msgInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                // Chỉ gửi tin nhắn chung, không gửi tin nhắn riêng tư qua khung chat chung
+                socket.emit('message', message);
+                input.value = '';
             }
         }
-
 
         function uploadFile() {
             var fileInput = document.getElementById("fileInput");
@@ -430,6 +1386,156 @@
             });
         });
 
+        // Hàm để tải lịch sử chat riêng tư
+        async function loadPrivateHistory() {
+            try {
+                const response = await fetch('/private_history');
+                const history = await response.json();
+                
+                if (currentPrivateChat) {
+                    const messagesDiv = document.getElementById('privateChatMessages');
+                    messagesDiv.innerHTML = ''; // Xóa tin nhắn hiện tại
+                    
+                    // Lọc và hiển thị tin nhắn riêng tư với người dùng đã chọn
+                    history.reverse().forEach(msg => {
+                        if ((msg.from_user === currentPrivateChat && msg.to_user === username) ||
+                            (msg.from_user === username && msg.to_user === currentPrivateChat)) {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = msg.from_user === username ? 'message sent' : 'message received';
+                            messageDiv.innerHTML = `${msg.message}<span class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</span>`;
+                            messagesDiv.appendChild(messageDiv);
+                        }
+                    });
+                    
+                    // Cuộn xuống tin nhắn mới nhất
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải lịch sử chat:', error);
+                showToast('Không thể tải lịch sử chat');
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Cập nhật hàm startPrivateChat
+        function startPrivateChat(targetUser) {
+            currentPrivateChat = targetUser;
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('msgInput').placeholder = `Nhắn tin với ${targetUser}...`;
+            loadPrivateHistory(); // Tải lịch sử chat khi bắt đầu chat riêng tư
+        }
+        
+        // Cập nhật socket listener cho tin nhắn riêng tư
+        socket.on('private_message', function(data) {
+            if (currentPrivateChat === data.from_user) {
+                // Hiển thị tin nhắn trong khung chat riêng tư
+                const messagesDiv = document.getElementById('privateChatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message received';
+                messageDiv.innerHTML = `${data.message}<span class="message-time">${new Date().toLocaleTimeString()}</span>`;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } else {
+                showToast(`Tin nhắn mới từ ${data.from_user}`);
+            }
+        });
+
+        // Hàm mở chat riêng tư
+        function openPrivateChat(targetUser) {
+            currentPrivateChat = targetUser;
+            document.getElementById("privateChatUsername").textContent = targetUser;
+            document.getElementById("privateChatModal").classList.add("show");
+            document.getElementById("privateChatOverlay").classList.add("show");
+            document.getElementById("privateChatInput").placeholder = `Nhắn tin với ${targetUser}...`;
+            loadPrivateHistory();
+        }
+
+        // Hàm đóng chat riêng tư
+        document.getElementById("closePrivateChat").addEventListener("click", function() {
+            document.getElementById("privateChatModal").classList.remove("show");
+            document.getElementById("privateChatOverlay").classList.remove("show");
+            currentPrivateChat = null;
+        });
+
+        // Đóng modal khi click vào overlay
+        document.getElementById("privateChatOverlay").addEventListener("click", function() {
+            document.getElementById("privateChatModal").classList.remove("show");
+            document.getElementById("privateChatOverlay").classList.remove("show");
+            currentPrivateChat = null;
+        });
+
+        // Gửi tin nhắn riêng tư
+        function sendPrivateMessage() {
+            const input = document.getElementById('privateChatInput');
+            const message = input.value.trim();
+            
+            if (message && currentPrivateChat) {
+                socket.emit('private_message', {
+                    to_user: currentPrivateChat,
+                    message: message
+                });
+                
+                // Hiển thị tin nhắn đã gửi
+                const messagesDiv = document.getElementById('privateChatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message sent';
+                messageDiv.innerHTML = `${message}<span class="message-time">${new Date().toLocaleTimeString()}</span>`;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                input.value = '';
+            }
+        }
+
+        // Gửi file riêng tư
+        document.getElementById('privateChatFileInput').addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('to_user', currentPrivateChat);
+            
+            fetch('/upload_private_file', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Hiển thị thông báo thành công
+                    const messagesDiv = document.getElementById('privateChatMessages');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message sent';
+                    messageDiv.innerHTML = `Đã gửi file: ${file.name}<span class="message-time">${new Date().toLocaleTimeString()}</span>`;
+                    messagesDiv.appendChild(messageDiv);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Lỗi upload file:', error));
+            
+            this.value = ''; // Reset input file
+        });
+
+        // Thêm sự kiện Enter để gửi tin nhắn trong chat riêng tư
+        document.getElementById('privateChatInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendPrivateMessage();
+            }
+        });
+
+        // Hàm hiển thị thông báo
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
     </script>
 </body>
 </html>
