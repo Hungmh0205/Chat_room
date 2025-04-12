@@ -43,3 +43,19 @@ DHT Chat Room là một ứng dụng chat thời gian thực với nhiều tính
 4. **Chạy ứng dụng**
    ```bash
    python server.py
+
+Hướng dẫn sử dụng
+1. Đăng ký và đăng nhập
+- Truy cập trang /register để tạo tài khoản.
+- Đăng nhập tại trang /login.
+2. Chat nhóm
+- Sau khi đăng nhập, bạn sẽ được chuyển đến trang chat nhóm.
+3. Chat riêng tư
+- Nhấp vào tên người dùng trong danh sách online để bắt đầu chat riêng tư.
+4. Video call
+- Truy cập /dashboard để tạo hoặc tham gia cuộc gọi video.
+5. Quản lý tin nhắn và người dùng
+- Chạy manager.py để mở giao diện quản lý tin nhắn và người dùng.
+
+Đóng góp
+Nếu bạn muốn đóng góp cho dự án, hãy tạo một pull request hoặc mở issue trên GitHub.
