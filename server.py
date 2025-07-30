@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import requests
+import argparse
 from flask import Flask, render_template, request, redirect, session, jsonify
 from flask_socketio import SocketIO, send, emit
 from flask_bcrypt import Bcrypt
@@ -421,19 +422,39 @@ def get_username():
     
     return jsonify({"username": session["username"]})
 
-# Khởi động server với ngrok
+# Khởi động server với lựa chọn local hoặc ngrok
 if __name__ == "__main__":
-    try:
-        from pyngrok import ngrok
-        public_url = ngrok.connect(5000).public_url
-        print(f"🔥 Server đang chạy tại: {public_url}")
+    parser = argparse.ArgumentParser(description='Chat Room Server')
+    parser.add_argument('-local', action='store_true', help='Chạy server local không sử dụng ngrok')
+    parser.add_argument('-ngrok', action='store_true', help='Chạy server với ngrok để public')
+    
+    args = parser.parse_args()
+    
+    if args.local:
+        print("🔥 Server đang chạy local tại: http://localhost:5000")
         socketio.run(app, 
-            host="0.0.0.0", 
+            host="127.0.0.1", 
             port=5000,
             debug=True,
             use_reloader=False,
             log_output=True
         )
-    except Exception as e:
-        print(f"Server error: {str(e)}")
-    
+    elif args.ngrok:
+        try:
+            from pyngrok import ngrok
+            public_url = ngrok.connect(5000).public_url
+            print(f"🔥 Server đang chạy với ngrok tại: {public_url}")
+            socketio.run(app, 
+                host="0.0.0.0", 
+                port=5000,
+                debug=True,
+                use_reloader=False,
+                log_output=True
+            )
+        except Exception as e:
+            print(f"Lỗi khi khởi động ngrok: {str(e)}")
+            print("Đảm bảo bạn đã cài đặt pyngrok: pip install pyngrok")
+    else:
+        print("Vui lòng chọn một trong hai lựa chọn:")
+        print("  python server.py -local    : Chạy server local")
+        print("  python server.py -ngrok    : Chạy server với ngrok") 
