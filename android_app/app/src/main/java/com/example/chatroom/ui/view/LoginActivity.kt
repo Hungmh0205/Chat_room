@@ -18,7 +18,8 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        viewModel = ViewModelProvider(this).get(LoginViewModel::class.java)
+        val sessionManager = SessionManager(this)
+        viewModel = ViewModelProvider(this, LoginViewModelFactory(sessionManager)).get(LoginViewModel::class.java)
 
         val usernameInput = findViewById<EditText>(R.id.usernameInput)
         val passwordInput = findViewById<EditText>(R.id.passwordInput)

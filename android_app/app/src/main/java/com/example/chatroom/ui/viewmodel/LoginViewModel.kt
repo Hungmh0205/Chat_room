@@ -11,12 +11,14 @@ import com.example.chatroom.utils.Constants
 import com.example.chatroom.utils.SessionManager
 import kotlinx.coroutines.launch
 
-class LoginViewModel : ViewModel() {
-    private val repository = ChatRepository(RetrofitClient.apiService, SocketService(Constants.SERVER_URL))
+class LoginViewModel(private val sessionManager: SessionManager) : ViewModel() {
     private val _loginResult = MutableLiveData<Boolean>()
     val loginResult: LiveData<Boolean> get() = _loginResult
 
     fun login(username: String, password: String) {
+        val serverUrl = sessionManager.getServerUrl() ?: return
+        val apiService = RetrofitClient.getApiService(serverUrl)
+        val repository = ChatRepository(apiService, SocketService(serverUrl))
         viewModelScope.launch {
             val result = repository.login(username, password)
             _loginResult.value = result.isSuccess

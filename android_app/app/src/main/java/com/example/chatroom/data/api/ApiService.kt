@@ -22,18 +22,18 @@ data class RegisterRequest(val username: String, val password: String)
 data class ApiResponse(val status: String, val message: String)
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:5000/"  // Adjust for your server
-
     private val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(logging)
         .build()
 
-    val apiService: ApiService = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(client)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-        .create(ApiService::class.java)
+    fun getApiService(baseUrl: String): ApiService {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
 }

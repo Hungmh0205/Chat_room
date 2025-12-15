@@ -6,12 +6,22 @@ import androidx.lifecycle.ViewModel
 import com.example.chatroom.data.api.RetrofitClient
 import com.example.chatroom.data.api.SocketService
 import com.example.chatroom.data.repository.ChatRepository
-import com.example.chatroom.utils.Constants
+import com.example.chatroom.utils.SessionManager
 
-class ChatViewModel : ViewModel() {
-    private val repository = ChatRepository(RetrofitClient.apiService, SocketService(Constants.SERVER_URL))
+class ChatViewModel(private val sessionManager: SessionManager) : ViewModel() {
     private val _messages = MutableLiveData<String>()
     val messages: LiveData<String> get() = _messages
+
+    private val _onlineUsers = MutableLiveData<List<String>>()
+    val onlineUsers: LiveData<List<String>> get() = _onlineUsers
+
+    private lateinit var repository: ChatRepository
+
+    init {
+        val serverUrl = sessionManager.getServerUrl() ?: return
+        val apiService = RetrofitClient.getApiService(serverUrl)
+        repository = ChatRepository(apiService, SocketService(serverUrl))
+    }
 
     fun connectSocket() {
         repository.connectSocket(
@@ -25,11 +35,20 @@ class ChatViewModel : ViewModel() {
         repository.sendMessage(msg)
     }
 
+    fun loadOnlineUsers() {
+        viewModelScope.launch {
+            val response = repository.getOnlineUsers()
+            if (response.isSuccessful) {
+                _onlineUsers.value = response.body()?.users ?: emptyList()
+            }
+        }
+    }
+
     fun disconnectSocket() {
         repository.disconnectSocket()
     }
 
     fun logout() {
-        // Clear session, etc.
+        sessionManager.clearSession()
     }
 }

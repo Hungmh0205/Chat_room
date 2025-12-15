@@ -4,7 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.chatroom.ui.view.ChatActivity
-import com.example.chatroom.ui.view.LoginActivity
+import com.example.chatroom.ui.view.ServerConfigActivity
 import com.example.chatroom.utils.SessionManager
 
 class MainActivity : AppCompatActivity() {
@@ -16,11 +16,14 @@ class MainActivity : AppCompatActivity() {
 
         sessionManager = SessionManager(this)
 
-        if (sessionManager.getUsername() != null) {
-            // Already logged in, go to chat
+        if (sessionManager.getServerUrl() == null) {
+            // Chưa có URL, đi config server
+            startActivity(Intent(this, ServerConfigActivity::class.java))
+        } else if (sessionManager.getUsername() != null) {
+            // Đã login, đi chat
             startActivity(Intent(this, ChatActivity::class.java))
         } else {
-            // Go to login
+            // Có URL nhưng chưa login, đi login
             startActivity(Intent(this, LoginActivity::class.java))
         }
         finish()

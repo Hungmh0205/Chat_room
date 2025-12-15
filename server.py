@@ -438,7 +438,7 @@ if __name__ == "__main__":
     if args.local:
         print("🔥 Server đang chạy local tại: http://localhost:5000")
         socketio.run(app, 
-            host="127.0.0.1", 
+            host="0.0.0.0",  # Thay từ 127.0.0.1 để access từ LAN
             port=5000,
             debug=True,
             use_reloader=False,

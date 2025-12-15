@@ -29,7 +29,12 @@ class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
-        viewModel = ViewModelProvider(this).get(ChatViewModel::class.java)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_chat)
+
+        val sessionManager = SessionManager(this)
+        viewModel = ViewModelProvider(this, ChatViewModelFactory(sessionManager)).get(ChatViewModel::class.java)
 
         drawerLayout = findViewById(R.id.drawerLayout)
         messageList = findViewById(R.id.messageList)

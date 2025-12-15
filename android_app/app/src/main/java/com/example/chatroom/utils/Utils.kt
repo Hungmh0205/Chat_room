@@ -1,7 +1,7 @@
 package com.example.chatroom.utils
 
 object Constants {
-    const val SERVER_URL = "http://10.0.2.2:5000"  // Adjust for your server
+    // Không hardcode, dùng từ SessionManager
 }
 
 class SessionManager(private val context: android.content.Context) {
@@ -13,6 +13,14 @@ class SessionManager(private val context: android.content.Context) {
 
     fun getUsername(): String? {
         return prefs.getString("username", null)
+    }
+
+    fun saveServerUrl(url: String) {
+        prefs.edit().putString("server_url", url).apply()
+    }
+
+    fun getServerUrl(): String? {
+        return prefs.getString("server_url", null)
     }
 
     fun clearSession() {
