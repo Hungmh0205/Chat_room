@@ -204,6 +204,11 @@ def chat_history():
     conn.close()
     return jsonify(messages)
 
+# API lấy danh sách người dùng online
+@app.route("/online_users")
+def get_online_users():
+    return jsonify({"users": list(users_online)})
+
 # Gửi tin nhắn real-time
 @socketio.on("message")
 def handle_message(msg):
